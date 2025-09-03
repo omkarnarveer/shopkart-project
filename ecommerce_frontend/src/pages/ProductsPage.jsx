@@ -14,6 +14,7 @@ const ProductsPage = ({ onAddToCart, onNavigate, products, categories }) => {
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [priceRange, setPriceRange] = useState(500);
     const [sortKey, setSortKey] = useState(''); // State to hold the current sort option
+    
 
     // Calculate the maximum price from the products to set the slider's upper limit
     const maxPrice = useMemo(() => {

@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.core.validators import MinValueValidator
 # Create your models here.
 # store/models.py
 
@@ -24,7 +24,7 @@ class Product(models.Model):
     # The 'upload_to' argument specifies the subdirectory within MEDIA_ROOT
     image = models.ImageField(upload_to='products/', blank=True, null=True)
     in_stock = models.BooleanField(default=True)
-    quantity = models.PositiveIntegerField(default=1)
+    quantity = models.PositiveIntegerField(default=0,validators=[MinValueValidator(0)])
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=4.50)
 
     def __str__(self):

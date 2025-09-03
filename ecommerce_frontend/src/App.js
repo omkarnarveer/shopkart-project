@@ -1,5 +1,3 @@
-// src/App.js
-
 import React, { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import HomePage from './pages/HomePage';
@@ -9,6 +7,10 @@ import CartPage from './pages/CartPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import WelcomePage from './pages/WelcomePage';
+// FIX 1: Import the missing CheckoutPage component
+import CheckoutPage from './pages/CheckoutPage'; 
+import OrderConfirmationPage from './pages/OrderConfirmationPage';
+
 import './App.css';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
@@ -27,7 +29,6 @@ const apiCall = async (endpoint, method = 'GET', body = null) => {
     }
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
     if (!response.ok) {
-        // Try to parse error JSON, but handle cases where it's not JSON
         let errorData;
         try {
             errorData = await response.json();
@@ -79,7 +80,6 @@ function App() {
         }
     }, [handleLogout]);
 
-    // Effect to check for an existing session on initial load
     useEffect(() => {
         const token = localStorage.getItem('accessToken');
         if (token) {
@@ -93,7 +93,6 @@ function App() {
         }
     }, [handleLogout, fetchCart]);
 
-    // Effect to fetch initial product and category data
     useEffect(() => {
         const fetchInitialData = async () => {
             setLoading(true);
@@ -134,14 +133,12 @@ function App() {
         try {
             const updatedCart = await apiCall('/api/cart/', 'POST', { product_id: product.id });
             setCart(updatedCart);
-            //alert(`${product.name} added to cart!`);
         } catch (err) {
             console.error("Failed to add item to cart:", err);
             alert("Could not add item. Please try again.");
         }
     };
 
-    // Function to update item quantity (+ or -)
     const handleUpdateCartItem = async (itemId, action) => {
         try {
             const updatedCart = await apiCall(`/api/cart/item/${itemId}/`, 'PATCH', { action });
@@ -152,9 +149,7 @@ function App() {
         }
     };
 
-    // Function to remove an item from the cart
     const handleRemoveCartItem = async (itemId) => {
-        // Use a standard confirm dialog
         if (!window.confirm("Are you sure you want to remove this item?")) return;
         try {
             const updatedCart = await apiCall(`/api/cart/item/${itemId}/`, 'DELETE');
@@ -162,6 +157,17 @@ function App() {
         } catch (err) {
             console.error("Failed to remove cart item:", err);
             alert("Could not remove item from cart.");
+        }
+    };
+    
+    const handlePlaceOrder = async () => {
+        try {
+            await apiCall('/api/cart/clear/', 'POST');
+            setCart(null);
+            handleNavigate('orderConfirmation');
+        } catch (err) {
+            console.error("Failed to place order:", err);
+            alert("There was an issue placing your order. Please try again.");
         }
     };
 
@@ -177,8 +183,15 @@ function App() {
             case 'productDetail':
                 return <ProductDetailPage productId={props.id} onAddToCart={handleAddToCart} products={products} />;
             case 'cart':
-                // Pass the new handler functions to the CartPage
-                return <CartPage cart={cart} onUpdateItem={handleUpdateCartItem} onRemoveItem={handleRemoveCartItem} />;
+                return <CartPage cart={cart} onUpdateItem={handleUpdateCartItem} onRemoveItem={handleRemoveCartItem} onNavigate={handleNavigate}/>;
+            
+            // FIX 2: Render the correct component for the 'checkout' route
+            case 'checkout':
+              return <CheckoutPage cart={cart} onPlaceOrder={handlePlaceOrder} />;
+
+            case 'orderConfirmation': 
+              return <OrderConfirmationPage onNavigate={handleNavigate} />;
+
             case 'login':
                 return <LoginPage onLogin={handleLogin} onNavigate={handleNavigate} />;
             case 'register':
@@ -190,7 +203,6 @@ function App() {
         }
     };
 
-    // Calculate cart count from the new cart object structure
     const cartItemCount = cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
     return (
@@ -207,3 +219,4 @@ function App() {
 }
 
 export default App;
+

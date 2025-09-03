@@ -11,7 +11,6 @@ const ProductCard = ({ product, onAddToCart, onNavigate, onStockError }) => {
     // Destructure all needed properties, including 'quantity'
     const { name, category, price, rating, quantity, image } = product;
     
-    // --- MERGED LOGIC ---
     // Use quantity as the single source of truth for stock status.
     const isOutOfStock = quantity === 0;
     
@@ -28,14 +27,19 @@ const ProductCard = ({ product, onAddToCart, onNavigate, onStockError }) => {
         if (!isOutOfStock) {
             onAddToCart(product);
         } else {
-            onStockError(); 
+            // FIX: Add a check to prevent crashing if the onStockError prop isn't passed.
+            if (typeof onStockError === 'function') {
+                onStockError(); 
+            } else {
+                // This console error helps developers find the root cause.
+                console.error("onStockError was called, but it is not a function. Make sure you are passing it as a prop to ProductCard.");
+            }
         }
     };
 
     return (
-        // --- MERGED LOGIC ---
-        // Apply grayscale and lower opacity if the product is out of stock.
-        <div className={`bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-2 group ${isOutOfStock ? 'grayscale opacity-60' : ''}`}>
+        // The empty class for isOutOfStock keeps the card colored.
+        <div className={`bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-2 group ${isOutOfStock ? '' : ''}`}>
             <div className="relative">
                 <div className="p-4 bg-gray-50">
                     <img 
@@ -72,8 +76,6 @@ const ProductCard = ({ product, onAddToCart, onNavigate, onStockError }) => {
                     <span className="text-2xl font-bold text-gray-900">₹{parseFloat(price).toFixed(2)}</span>
                     <button 
                         onClick={handleButtonClick}
-                        // --- MERGED LOGIC ---
-                        // Button styles and text are now controlled by isOutOfStock.
                         className={`px-4 py-2 rounded-lg text-white font-semibold text-sm transition-all duration-300 transform hover:scale-105 ${
                             isOutOfStock 
                                 ? 'bg-gray-400 cursor-not-allowed' 

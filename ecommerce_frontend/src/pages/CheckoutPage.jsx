@@ -1,35 +1,34 @@
 import React, { useState } from 'react';
 
-const CheckoutPage = ({ cart, onPlaceOrder }) => {
+const CheckoutPage = ({ cart, onPlaceOrder, onNavigate }) => {
     const [processing, setProcessing] = useState(false);
-
-    // Guard clause for an empty cart
+   
     if (!cart || !cart.items || cart.items.length === 0) {
         return (
-            <div className="text-center py-20 bg-white p-10 rounded-lg shadow-lg">
-                <h2 className="text-2xl font-bold mb-4">Your cart is empty.</h2>
-                <p className="text-gray-600">You can't proceed to checkout without any items.</p>
+            <div className="text-center py-20 bg-white p-10 rounded-lg shadow-lg max-w-lg mx-auto">
+                <h2 className="text-2xl font-bold mb-4">Your Cart is Empty</h2>
+                <p className="text-gray-600 mb-6">You can't proceed to checkout without any items.</p>
+                <button 
+                    onClick={() => onNavigate('products')} 
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                >
+                    Continue Shopping
+                </button>
             </div>
         );
     }
 
-    // Calculate totals
-    const subtotal = cart.items.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
+    const subtotal = parseFloat(cart.total_price || 0);
     const tax = subtotal * 0.10; // Example 10% tax
     const total = subtotal + tax;
 
-    /**
-     * Handles the form submission to simulate payment processing.
-     * @param {React.FormEvent} e - The form event.
-     */
     const handleSubmit = (e) => {
         e.preventDefault();
         setProcessing(true);
         
-        // Simulate a network request delay for 2 seconds
+        // Simulate a network request delay
         setTimeout(() => {
             onPlaceOrder();
-            // No need to set processing back to false, as the page will navigate away.
         }, 2000);
     };
 
@@ -38,7 +37,7 @@ const CheckoutPage = ({ cart, onPlaceOrder }) => {
             <h1 className="text-3xl font-bold text-center mb-8">Checkout</h1>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 
-                {/* Left Side: Payment and Shipping Form */}
+                {/* Payment and Shipping Form */}
                 <div className="bg-white p-8 rounded-lg shadow-lg">
                     <h2 className="text-2xl font-semibold mb-6">Shipping & Payment Details</h2>
                     <form onSubmit={handleSubmit}>
@@ -65,37 +64,39 @@ const CheckoutPage = ({ cart, onPlaceOrder }) => {
                             disabled={processing} 
                             className="w-full bg-green-600 text-white py-3 rounded-lg font-bold text-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                         >
-                            {processing ? 'Processing...' : `Pay $${total.toFixed(2)}`}
+                            {processing ? 'Processing...' : `Pay ₹${total.toFixed(2)}`}
                         </button>
                     </form>
                 </div>
 
-                {/* Right Side: Order Summary */}
+                {/* Order Summary */}
                 <div className="bg-white p-8 rounded-lg shadow-lg">
                     <h2 className="text-2xl font-semibold mb-6">Your Order Summary</h2>
                     <div className="space-y-4">
                         {cart.items.map(item => (
                             <div key={item.id} className="flex justify-between items-center py-2 border-b">
                                 <div>
-                                    <p className="font-semibold">{item.name}</p>
+                                    {/* FIX: Access item.product.name */}
+                                    <p className="font-semibold">{item.product.name}</p>
                                     <p className="text-gray-500 text-sm">Quantity: {item.quantity}</p>
                                 </div>
-                                <span className="font-semibold">${(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
+                                {/* FIX: Access item.product.price for line item calculation */}
+                                <span className="font-semibold">₹{(parseFloat(item.product.price) * item.quantity).toFixed(2)}</span>
                             </div>
                         ))}
                     </div>
                     <div className="mt-6 border-t pt-4 space-y-2">
                         <div className="flex justify-between">
                             <span className="text-gray-600">Subtotal</span>
-                            <span>${subtotal.toFixed(2)}</span>
+                            <span>₹{subtotal.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-gray-600">Tax (10%)</span>
-                            <span>${tax.toFixed(2)}</span>
+                            <span>₹{tax.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between font-bold text-xl mt-4 pt-2 border-t">
                             <span>Total</span>
-                            <span>${total.toFixed(2)}</span>
+                            <span>₹{total.toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
@@ -106,3 +107,4 @@ const CheckoutPage = ({ cart, onPlaceOrder }) => {
 };
 
 export default CheckoutPage;
+

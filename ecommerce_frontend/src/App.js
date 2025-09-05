@@ -7,17 +7,15 @@ import CartPage from './pages/CartPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import WelcomePage from './pages/WelcomePage';
-// FIX 1: Import the missing CheckoutPage component
 import CheckoutPage from './pages/CheckoutPage'; 
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
+import OrderHistoryPage from './pages/OrderHistoryPage';
 
 import './App.css';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
-
-// Helper function to make authenticated API calls
 const apiCall = async (endpoint, method = 'GET', body = null) => {
-    const config = {
+    let config = {
         method,
         headers: {
             'Content-Type': 'application/json',
@@ -27,7 +25,35 @@ const apiCall = async (endpoint, method = 'GET', body = null) => {
     if (body) {
         config.body = JSON.stringify(body);
     }
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    
+    let response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+
+    if (response.status === 401) {
+        console.log("Access token expired. Attempting to refresh...");
+    
+        const refreshResponse = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh: localStorage.getItem('refreshToken') })
+        });
+        
+        if (refreshResponse.ok) {
+            const data = await refreshResponse.json();
+            localStorage.setItem('accessToken', data.access);
+            console.log("Token refreshed successfully. Retrying original request...");
+            
+            // Update the authorization header with the new token
+            config.headers['Authorization'] = `Bearer ${data.access}`;
+            
+            // Retry the original request
+            response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+        } else {
+            console.log("Refresh token is also invalid. Logging out.");
+            // If refresh fails, you would typically trigger a logout here.
+            // For now, we'll just let the original error be thrown.
+        }
+    }
+
     if (!response.ok) {
         let errorData;
         try {
@@ -37,9 +63,11 @@ const apiCall = async (endpoint, method = 'GET', body = null) => {
         }
         throw new Error(errorData.detail || 'An API error occurred');
     }
-    if (response.status === 204) return null; // Handle No Content response
+    
+    if (response.status === 204) return null;
     return response.json();
 };
+
 
 
 function App() {
@@ -161,15 +189,25 @@ function App() {
     };
     
     const handlePlaceOrder = async () => {
-        try {
-            await apiCall('/api/cart/clear/', 'POST');
-            setCart(null);
-            handleNavigate('orderConfirmation');
-        } catch (err) {
-            console.error("Failed to place order:", err);
-            alert("There was an issue placing your order. Please try again.");
-        }
-    };
+    try {
+        // 1. Send a POST request to the '/api/orders/' endpoint.
+        // This triggers the `post` method in your Django OrderView,
+        // which creates a permanent order from the cart items.
+        await apiCall('/api/orders/', 'POST');
+        
+        // 2. After the backend confirms the order is created,
+        // clear the cart in the frontend's state.
+        setCart(null); 
+        
+        // 3. Navigate the user to the success page.
+        handleNavigate('orderConfirmation');
+
+    } catch (err) {
+        // If the backend returns an error, display an alert to the user.
+        console.error("Failed to place order:", err);
+        alert("There was an issue placing your order. Please try again.");
+    }
+};
 
     const renderPage = () => {
         if (loading) return <div className="text-center py-20"><h2>Loading...</h2></div>;
@@ -185,12 +223,14 @@ function App() {
             case 'cart':
                 return <CartPage cart={cart} onUpdateItem={handleUpdateCartItem} onRemoveItem={handleRemoveCartItem} onNavigate={handleNavigate}/>;
             
-            // FIX 2: Render the correct component for the 'checkout' route
             case 'checkout':
               return <CheckoutPage cart={cart} onPlaceOrder={handlePlaceOrder} />;
 
             case 'orderConfirmation': 
               return <OrderConfirmationPage onNavigate={handleNavigate} />;
+
+            case 'orderHistory':
+              return <OrderHistoryPage apiCall={apiCall} onNavigate={handleNavigate} />;
 
             case 'login':
                 return <LoginPage onLogin={handleLogin} onNavigate={handleNavigate} />;
@@ -219,4 +259,3 @@ function App() {
 }
 
 export default App;
-

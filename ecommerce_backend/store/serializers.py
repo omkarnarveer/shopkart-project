@@ -1,24 +1,12 @@
-# store/serializers.py
-
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Product, Category, Order, OrderItem
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-class CategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Category
-        fields = ['id', 'name', 'slug']
+# --- Local Imports (from your app) ---
+from .models import Category, Product, Cart, CartItem, Order, OrderItem
 
-class ProductSerializer(serializers.ModelSerializer):
-    # To show category name instead of ID
-    category = serializers.StringRelatedField()
+# --- USER AND AUTHENTICATION SERIALIZERS ---
 
-    class Meta:
-        model = Product
-        fields = '__all__'
-
-# Serializer for User Registration
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -32,34 +20,61 @@ class UserSerializer(serializers.ModelSerializer):
             validated_data['password']
         )
         return user
-    
-    
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
-        # Get the default token
         token = super().get_token(user)
-
-        # Add custom claims (the data you want to include)
         token['username'] = user.username
-        # You can add other fields here too, like email
-        # token['email'] = user.email
-
         return token
-    
+
+# --- PRODUCT & CATEGORY SERIALIZERS ---
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'slug']
+
+class ProductSerializer(serializers.ModelSerializer):
+    category = serializers.StringRelatedField()
+
+    class Meta:
+        model = Product
+        fields = '__all__'
+
+# --- CART SERIALIZERS (For the active shopping session) ---
+
+class ProductForCartItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'price', 'image']
+
+class CartItemSerializer(serializers.ModelSerializer):
+    product = ProductForCartItemSerializer(read_only=True)
+
+    class Meta:
+        model = CartItem
+        fields = ['id', 'product', 'quantity', 'total_price']
+
+class CartSerializer(serializers.ModelSerializer):
+    items = CartItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Cart
+        fields = ['id', 'user', 'created_at', 'items', 'total_price']
+
+# --- ORDER HISTORY SERIALIZERS (For permanent records) ---
+
 class OrderItemSerializer(serializers.ModelSerializer):
-    # We want to show product details, not just the ID
     product = ProductSerializer(read_only=True)
     
     class Meta:
         model = OrderItem
-        fields = ['id', 'product', 'quantity', 'total_price']
+        fields = ['id', 'product', 'quantity', 'total_price', 'date_added']
 
 class OrderSerializer(serializers.ModelSerializer):
-    # Use the OrderItemSerializer for the nested 'items' relationship
     items = OrderItemSerializer(many=True, read_only=True)
     
     class Meta:
         model = Order
-        fields = ['id', 'customer', 'is_ordered', 'status', 'items', 'total_price']
+        fields = ['id', 'customer', 'date_ordered', 'is_ordered', 'status', 'items', 'total_price']

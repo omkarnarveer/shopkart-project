@@ -1,5 +1,4 @@
 import React from 'react';
-import { StarIcon } from '../assets/icons';
 
 const ProductDetailPage = ({ productId, onAddToCart, onNavigate, onStockError, products }) => {
     const product = products.find(p => p.id === productId);

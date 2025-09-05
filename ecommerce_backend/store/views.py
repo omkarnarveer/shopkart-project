@@ -93,10 +93,10 @@ class CartItemView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
-    def patch(self, request, pk, *args, **kwargs):
+    def patch(self, request, item_id, *args, **kwargs):
         try:
             # FIX: This now correctly queries CartItem
-            cart_item = CartItem.objects.get(pk=pk, cart__user=request.user)
+            cart_item = CartItem.objects.get(id=item_id, cart__user=request.user)
         except CartItem.DoesNotExist:
             return Response({"detail": "Cart item not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -114,9 +114,9 @@ class CartItemView(APIView):
         serializer = CartSerializer(cart_item.cart)
         return Response(serializer.data)
 
-    def delete(self, request, pk, *args, **kwargs):
+    def delete(self, request, item_id, *args, **kwargs):
         try:
-            cart_item = CartItem.objects.get(pk=pk, cart__user=request.user)
+            cart_item = CartItem.objects.get(id=item_id, cart__user=request.user)
             cart = cart_item.cart
             cart_item.delete()
             serializer = CartSerializer(cart)
